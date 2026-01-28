@@ -28,41 +28,60 @@ import json
 
 
 
-def compute_sample_weights(dataset, ignore_label=None):
+def compute_sample_weights(dataset, ignore_label):
     """
-    Calcola i pesi per WeightedRandomSampler in base alla frequenza delle classi.
+    Calcola pesi per WeightedRandomSampler (livello immagine),
+    robusto a classi molto rare.
 
     Args:
-        dataset: istanza del Dataset PyTorch (es. MORTARS)
-        ignore_label: label da ignorare nel calcolo (es. 3)
-    
+        dataset: Dataset PyTorch (es. MORTARS)
+        ignore_label: label da ignorare
+        max_class_weight: clamp massimo del peso per classe
+        eps: stabilità numerica
+        verbose: stampa progress
+
     Returns:
-        list di pesi float, lunghezza = numero di sample nel dataset
+        List[float] di lunghezza len(dataset)
     """
+    max_class_weight=10.0
+    eps=1e-6
+    verbose=True
+
     n_classes = dataset.n_classes
-    class_counts = torch.zeros(n_classes, dtype=torch.float)
+    class_pixel_counts = torch.zeros(n_classes, dtype=torch.float)
+    sample_classes = []
 
-    # contiamo quanti pixel ci sono per ciascuna classe
-    for _, lbl, _ in dataset:
-        for c in range(n_classes):
-            class_counts[c] += (lbl == c).sum()
-    
-    # peso inverso per classe
-    class_weights = 1.0 / (class_counts + 1e-6)
+    iterator = dataset
+    if verbose:
+        iterator = tqdm(dataset, desc="Computing sample weights")
 
+    # -------- 1) scansione unica --------
+    for _, lbl, _ in iterator:
+        classes = torch.unique(lbl)
+        if ignore_label is not None:
+            classes = classes[classes != ignore_label]
+
+        sample_classes.append(classes)
+
+        for c in classes:
+            class_pixel_counts[c] += (lbl == c).sum()
+
+    # -------- 2) pesi per classe (robusti) --------
+    # sqrt sull'inverso = meno aggressivo
+    class_weights = torch.sqrt(1.0 / (class_pixel_counts + eps))
+
+    # clamp per evitare estremi
+    class_weights = torch.clamp(class_weights, max=max_class_weight)
+
+    # -------- 3) peso per immagine --------
     sample_weights = []
-    for _, lbl, _ in dataset:
-        classes_in_lbl = torch.unique(lbl)
-        weight = 0.0
-        count = 0
-        for c in classes_in_lbl:
-            if ignore_label is not None and c == ignore_label:
-                continue
-            weight += class_weights[c]
-            count += 1
-        if count > 0:
-            weight /= count
-        sample_weights.append(weight.item())
+    for classes in sample_classes:
+        if len(classes) == 0:
+            sample_weights.append(1.0)  # fallback sicuro
+        else:
+            # max = spinge davvero le classi rare
+            w = class_weights[classes].max().item()
+            sample_weights.append(w)
 
     return sample_weights
 
@@ -298,4 +317,5 @@ if __name__ == '__main__':
     os.makedirs(save_dir, exist_ok=True)
     logger = get_logger(save_dir / 'train.log')
     main(cfg, save_dir)
+
     cleanup_ddp()
