@@ -28,23 +28,12 @@ import json
 
 
 
+
 def compute_sample_weights(dataset, ignore_label):
-    """
-    Calcola pesi per WeightedRandomSampler (livello immagine),
-    robusto a classi molto rare.
+    #Calcola pesi per WeightedRandomSampler (livello immagine) robusto a classi molto rare.
 
-    Args:
-        dataset: Dataset PyTorch (es. MORTARS)
-        ignore_label: label da ignorare
-        max_class_weight: clamp massimo del peso per classe
-        eps: stabilità numerica
-        verbose: stampa progress
-
-    Returns:
-        List[float] di lunghezza len(dataset)
-    """
-    max_class_weight=10.0
-    eps=1e-6
+    max_class_weight=10.0 #massimo peso per classe
+    eps=1e-6 
     verbose=True
 
     n_classes = dataset.n_classes
@@ -55,7 +44,6 @@ def compute_sample_weights(dataset, ignore_label):
     if verbose:
         iterator = tqdm(dataset, desc="Computing sample weights")
 
-    # -------- 1) scansione unica --------
     for _, lbl, _ in iterator:
         classes = torch.unique(lbl)
         if ignore_label is not None:
@@ -66,24 +54,20 @@ def compute_sample_weights(dataset, ignore_label):
         for c in classes:
             class_pixel_counts[c] += (lbl == c).sum()
 
-    # -------- 2) pesi per classe (robusti) --------
-    # sqrt sull'inverso = meno aggressivo
     class_weights = torch.sqrt(1.0 / (class_pixel_counts + eps))
 
-    # clamp per evitare estremi
     class_weights = torch.clamp(class_weights, max=max_class_weight)
 
-    # -------- 3) peso per immagine --------
     sample_weights = []
     for classes in sample_classes:
         if len(classes) == 0:
-            sample_weights.append(1.0)  # fallback sicuro
+            sample_weights.append(1.0)  
         else:
-            # max = spinge davvero le classi rare
             w = class_weights[classes].max().item()
             sample_weights.append(w)
 
     return sample_weights
+
 
 
 
@@ -317,5 +301,5 @@ if __name__ == '__main__':
     os.makedirs(save_dir, exist_ok=True)
     logger = get_logger(save_dir / 'train.log')
     main(cfg, save_dir)
-
     cleanup_ddp()
+
