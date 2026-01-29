@@ -2,7 +2,7 @@
 
 Questo progetto estende il modello MMSFormer per affrontare il problema della segmentazione delle malte, con immagini acquisite in due modalità: paralleli e incrociati.
 
-Per poter addestrare il modello, come viene spiegato nel README originale di MMSFormer presente nella directory del progetto, è necessario scaricare i pesi preaddestrati del backbone SegFormere e inserirli nella seguente struttura:
+Per poter addestrare il modello, come viene spiegato nel README originale di MMSFormer presente nella directory del progetto, è necessario scaricare i pesi preaddestrati del backbone SegFormere (disponibili al link: https://drive.google.com/drive/folders/10XgSW8f7ghRs9fJ0dE-EV8G2E_guVsT5) e inserirli nella seguente struttura:
 
 checkpoints/pretrained/segformer
 ├── mit_b0.pth
