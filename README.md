@@ -4,6 +4,7 @@ Questo progetto estende il modello MMSFormer per affrontare il problema della se
 
 Per poter addestrare il modello, come viene spiegato nel README originale di MMSFormer presente nella directory del progetto, è necessario scaricare i pesi preaddestrati del backbone SegFormere (disponibili al link: https://drive.google.com/drive/folders/10XgSW8f7ghRs9fJ0dE-EV8G2E_guVsT5) e inserirli nella seguente struttura:
 
+---
 checkpoints/pretrained/segformer
 ├── mit_b0.pth
 ├── mit_b1.pth
@@ -11,6 +12,7 @@ checkpoints/pretrained/segformer
 ├── mit_b3.pth
 ├── mit_b4.pth
 └── mit_b5.pth
+---
 
 Nel file di configurazione mortars.yaml si sceglie quale variante del backbone utilizzare e il relativo file di pesi:
 
