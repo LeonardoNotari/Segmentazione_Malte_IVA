@@ -103,9 +103,6 @@ def evaluate(model, dataloader, device, loss_fn=None, cfg=None):
             name, _ = os.path.splitext(fname[0])
             save_path = vis_dir / f"{name}.png"
             save_pred_map(pred_mask, save_path, dataloader.dataset.PALETTE)
-            #print(fname)
-            #save_path = vis_dir / f"pred_{iter}.png"
-            #save_pred_map(pred_mask, save_path, dataloader.dataset.PALETTE)
 
 
         if loss_fn is not None:
@@ -181,9 +178,7 @@ def main(cfg):
     device = torch.device(cfg['DEVICE'])
     eval_cfg = cfg['EVAL']
     transform = get_val_augmentation(eval_cfg['IMAGE_SIZE'])
-    # cases = ['cloud', 'fog', 'night', 'rain', 'sun']
-    # cases = ['motionblur', 'overexposure', 'underexposure', 'lidarjitter', 'eventlowres']
-    cases = [None] # all
+    cases = [None] 
     
     model_path = Path(eval_cfg['MODEL_PATH'])
     if not model_path.exists(): 
@@ -239,6 +234,10 @@ if __name__ == '__main__':
     # gpu = setup_ddp()
     # main(cfg, gpu)
     main(cfg)
+
+
+
+
 
 
 
