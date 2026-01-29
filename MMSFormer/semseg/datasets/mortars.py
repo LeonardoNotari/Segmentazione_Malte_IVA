@@ -21,9 +21,9 @@ class MORTARS(Dataset):
     CLASSES = ["Legante", "Porosità", "Aggregati"]
     
     PALETTE = torch.tensor([
-        [0, 0, 0],
-        [255, 0, 0],
-        [0, 255, 0]
+        [0, 0, 0],  #legante nero
+        [255, 0, 0], #porosità rosso
+        [0, 255, 0]  #aggregati verdi
     ])
 
     def __init__(
@@ -125,3 +125,4 @@ if __name__ == '__main__':
 
     for i, (sample, lbl) in enumerate(trainloader):
         print(torch.unique(lbl))
+
