@@ -1,7 +1,7 @@
 **MMSFormer - Segmentazione delle malte**
 
 Questo progetto estende il modello **MMSFormer** per affrontare il problema della **segmentazione delle malte**, con immagini acquisite in due modalità: **paralleli** e **incrociati**.
-per poter addestrare il
+per poter addestrare il modello devono essere scaricati i al seguente linkhttps://drive.google.com/drive/folders/10XgSW8f7ghRs9fJ0dE-EV8G2E_guVsT5
 
 ---
 
