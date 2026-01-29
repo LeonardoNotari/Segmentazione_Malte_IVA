@@ -4,6 +4,9 @@ import yaml
 import math
 import os
 import time
+import shutil
+from PIL import Image
+import matplotlib.pyplot as plt
 from pathlib import Path
 from tqdm import tqdm
 from tabulate import tabulate
@@ -23,11 +26,19 @@ from semseg.utils.utils import fix_seeds, setup_cudnn, cleanup_ddp, setup_ddp, g
 from sklearn.metrics import confusion_matrix
 import cv2
 
+
+
+
+
 def pad_image(img, target_size):
     rows_to_pad = max(target_size[0] - img.shape[2], 0)
     cols_to_pad = max(target_size[1] - img.shape[3], 0)
     padded_img = F.pad(img, (0, cols_to_pad, 0, rows_to_pad), "constant", 0)
     return padded_img
+
+
+
+
 
 @torch.no_grad()
 def sliding_predict(model, image, num_classes, flip=True):
@@ -62,6 +73,43 @@ def sliding_predict(model, image, num_classes, flip=True):
             total_predictions[:, y_min:y_max, x_min:x_max] += predictions.squeeze(0)
 
     return total_predictions.unsqueeze(0)
+
+
+
+
+
+@torch.no_grad()
+def save_confusion_matrix(): #crea immagine confusion matrix
+    cm_file = Path(cfg['EVAL']['CONFUSION_DIR'] + "/confusion_matrix.npy")
+    cm = np.load(cm_file)
+    class_names = ["Legante", "Porosità", "Aggregati"] 
+    save_path= cfg['EVAL']['CONFUSION_DIR'] + "/confusion_matrix.png"
+
+    cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+    cm = np.nan_to_num(cm)  # evita divisioni per zero
+
+    plt.figure(figsize=(8, 8))
+    plt.imshow(cm, cmap='Blues')
+    plt.colorbar()
+    plt.xticks(range(len(class_names)), class_names, rotation=45)
+    plt.yticks(range(len(class_names)), class_names)
+
+    # Scrivi i valori all'interno delle celle
+    for i in range(len(class_names)):
+        for j in range(len(class_names)):
+            plt.text(j, i, f"{cm[i, j]:.2f}", ha='center', va='center', color='red')
+
+    plt.title("Confusion Matrix")
+    #plt.xlabel("Predicted")
+    #plt.ylabel("Ground Truth")
+    plt.tight_layout()
+    
+    if save_path:
+        plt.savefig(save_path)
+
+
+
+
 
 @torch.no_grad()
 def evaluate(model, dataloader, device, loss_fn=None, cfg=None):
@@ -101,7 +149,7 @@ def evaluate(model, dataloader, device, loss_fn=None, cfg=None):
             pred_mask = preds.argmax(dim=1)[0]   # (H,W)s
         
             name, _ = os.path.splitext(fname[0])
-            save_path = vis_dir / f"{name}.png"
+            save_path = vis_dir / f"{name}_prediction.png"
             save_pred_map(pred_mask, save_path, dataloader.dataset.PALETTE)
 
 
@@ -119,8 +167,12 @@ def evaluate(model, dataloader, device, loss_fn=None, cfg=None):
         save_dir = Path(cfg['EVAL']['CONFUSION_DIR'])
         save_dir.mkdir(parents=True, exist_ok=True)
         np.save(save_dir / 'confusion_matrix.npy', conf_matrix)
+        save_confusion_matrix()
     
     return acc, macc, f1, mf1, ious, miou, test_loss
+
+
+
 
 
 @torch.no_grad()
@@ -159,6 +211,9 @@ def evaluate_msf(model, dataloader, device, scales, flip):
     return acc, macc, f1, mf1, ious, miou
 
 
+
+
+
 @torch.no_grad() #salva le mappe in output
 def save_pred_map(pred, save_path, palette):
     """
@@ -172,6 +227,62 @@ def save_pred_map(pred, save_path, palette):
         color_map[pred_np == cls_id] = color
 
     cv2.imwrite(save_path, cv2.cvtColor(color_map, cv2.COLOR_RGB2BGR))
+
+
+
+
+
+@torch.no_grad()
+def complete_output_dir(): #associa ogni predizione alle relative immagini e label
+    predictions_dir = cfg['EVAL']['VIS_SAVE_DIR']
+    labels_dir = cfg['DATASET']['ROOT'] + "/label"
+    incrociati_dir = cfg['DATASET']['ROOT'] + "/incrociati"
+    paralleli_dir = cfg['DATASET']['ROOT'] + "/paralleli"
+
+    est = (".png", ".tif")
+
+    predictions = {f[:-15] for f in os.listdir(predictions_dir) if f.lower().endswith(est)}
+    labels = {f[:-4] for f in os.listdir(labels_dir) if f.lower().endswith(est)}
+    incrociati = {f[:-4] for f in os.listdir(incrociati_dir) if f.lower().endswith(est)}
+    paralleli = {f[:-4] for f in os.listdir(paralleli_dir) if f.lower().endswith(est)}
+    common_file = predictions & labels & incrociati & paralleli
+    print(f"Found {len(common_file)} complete set.")
+
+    # Mappa colori
+    color_map = {
+        0: (0, 0, 0),   #legante nero
+        1: (255, 0, 0), #porosità rosso
+        2: (0, 255, 0), #aggregati verdi
+        3: (0, 0, 255), #ignore blu
+    }
+
+    for name in common_file:
+        #label
+        label_path = os.path.join(labels_dir, name+".tif")
+        label_img = Image.open(label_path).convert("L")  
+        label_array = np.array(label_img)
+
+        color_label = np.zeros((label_array.shape[0], label_array.shape[1], 3), dtype=np.uint8)
+        
+        for val, color in color_map.items():
+            mask = label_array == val
+            color_label[mask, 0] = color[0]
+            color_label[mask, 1] = color[1]
+            color_label[mask, 2] = color[2]
+
+        color_label_img = Image.fromarray(color_label)
+        color_label_img.save(os.path.join(predictions_dir, f"{name}_label.tif"))
+        
+        # immagini nelle due modalità
+        shutil.copy(os.path.join(incrociati_dir, name+".tif"),
+                    os.path.join(predictions_dir, f"{name}_incrociati.tif"))
+        shutil.copy(os.path.join(paralleli_dir, name+".tif"),
+                    os.path.join(predictions_dir, f"{name}_paralleli.tif"))
+
+    print("output completed!")
+
+
+
 
 
 def main(cfg):
@@ -219,6 +330,11 @@ def main(cfg):
             f.write("\n============== Eval on {} {} images =================\n".format(case, len(dataset)))
             f.write("\n")
             print(tabulate(table, headers='keys'), file=f)
+    
+    if cfg is not None and cfg['EVAL']['VIS_SAVE_DIR'] and cfg['EVAL']['SAVE_PREDICTIONS']:
+        complete_output_dir()
+
+
 
 
 
@@ -234,10 +350,3 @@ if __name__ == '__main__':
     # gpu = setup_ddp()
     # main(cfg, gpu)
     main(cfg)
-
-
-
-
-
-
-
