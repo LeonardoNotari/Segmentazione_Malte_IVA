@@ -1,0 +1,22 @@
+# Cartelle pesanti
+data/
+output/
+
+# File temporanei
+*.log
+*.tmp
+
+# Modelli AI
+*.pt
+*.pth
+*.h5
+
+# Cache python
+__pycache__/
+*.pyc
+
+requirements
+README
+
+
+
