@@ -146,14 +146,14 @@ def main(cfg, save_dir):
     scaler = GradScaler(enabled=train_cfg['AMP'])
     if (train_cfg['DDP'] and torch.distributed.get_rank() == 0) or (not train_cfg['DDP']):
         writer = SummaryWriter(str(save_dir))
-        #logger.info('================== model complexity =====================')
-        #cal_flops(model, dataset_cfg['MODALS'], logger)
-        #logger.info('================== model structure =====================')
-        #logger.info(model)
-        #logger.info('================== training config =====================')
-        #logger.info(cfg)
-        #logger.info('================== parameter count =====================')
-        #logger.info(sum(p.numel() for p in model.parameters() if p.requires_grad))
+        logger.info('================== model complexity =====================')
+        cal_flops(model, dataset_cfg['MODALS'], logger)
+        logger.info('================== model structure =====================')
+        logger.info(model)
+        logger.info('================== training config =====================')
+        logger.info(cfg)
+        logger.info('================== parameter count =====================')
+        logger.info(sum(p.numel() for p in model.parameters() if p.requires_grad))
 
     for epoch in range(start_epoch, epochs):
         # Clean Memory
@@ -293,7 +293,7 @@ if __name__ == '__main__':
     # exp_name = '_'.join([cfg['DATASET']['NAME'], model, modals])
     exp_name = cfg['WANDB_NAME']
     if cfg['USE_WANDB']:
-        wandb.init(project="MMSF-Mortars", entity="leonardo-notari-", name=exp_name)
+        wandb.init(project="MMSF-Mortars", entity="lnotari-universit-degli-studi-di-firenze", name=exp_name)
 
     save_dir = Path(cfg['SAVE_DIR'], exp_name)
     if os.path.isfile(cfg['MODEL']['RESUME']):
