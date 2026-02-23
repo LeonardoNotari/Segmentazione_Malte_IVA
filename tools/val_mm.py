@@ -82,8 +82,10 @@ def sliding_predict(model, image, num_classes, flip=True):
 def save_confusion_matrix(): #crea immagine confusion matrix
     cm_file = Path(cfg['EVAL']['CONFUSION_DIR'] + "/confusion_matrix.npy")
     cm = np.load(cm_file)
+
     #class_names = ["Legante", "Porosità", "Aggregati"] 
     class_names = ["Legante", "Aggregati"] 
+
     save_path= cfg['EVAL']['CONFUSION_DIR'] + "/confusion_matrix.png"
 
     cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
@@ -148,7 +150,7 @@ def evaluate(model, dataloader, device, loss_fn=None, cfg=None):
             wrong = (pred_labels != labels) & mask_valid
             error_rate = wrong.sum().float() / mask_valid.sum().float()
 
-            if error_rate > cfg['EVAL'].get('ERROR_THRESHOLD', 0.15):
+            if error_rate > cfg['EVAL']['ERROR_THRESHOLD']:
 
                 vis_dir = Path(cfg['EVAL']['VIS_SAVE_DIR'])
                 vis_dir.mkdir(parents=True, exist_ok=True)
@@ -156,20 +158,9 @@ def evaluate(model, dataloader, device, loss_fn=None, cfg=None):
                 pred_mask = pred_labels[0]
 
                 name, _ = os.path.splitext(fname[0])
-                save_path = vis_dir / f"{name}_prediction.png"
+                save_path = vis_dir / f"{name}_4prediction.png"
 
                 save_pred_map(pred_mask, save_path, dataloader.dataset.PALETTE)
-
-
-
-            #vis_dir = Path(cfg['EVAL']['VIS_SAVE_DIR'])
-            #vis_dir.mkdir(parents=True, exist_ok=True)
-
-            #pred_mask = preds.argmax(dim=1)[0]   # (H,W)s
-        
-            #name, _ = os.path.splitext(fname[0])
-            #save_path = vis_dir / f"{name}_prediction.png"
-            #save_pred_map(pred_mask, save_path, dataloader.dataset.PALETTE)
 
 
         if loss_fn is not None:
@@ -260,7 +251,8 @@ def complete_output_dir(): #associa ogni predizione alle relative immagini e lab
 
     est = (".png", ".tif")
 
-    predictions = {f[:-15] for f in os.listdir(predictions_dir) if f.lower().endswith(est)}
+    # FUNZIONA CON I NOMI ASSEGNATI DAL MODELLO 
+    predictions = {f[:-16] for f in os.listdir(predictions_dir) if f.lower().endswith(est)} 
     labels = {f[:-4] for f in os.listdir(labels_dir) if f.lower().endswith(est)}
     incrociati = {f[:-4] for f in os.listdir(incrociati_dir) if f.lower().endswith(est)}
     paralleli = {f[:-4] for f in os.listdir(paralleli_dir) if f.lower().endswith(est)}
@@ -270,8 +262,8 @@ def complete_output_dir(): #associa ogni predizione alle relative immagini e lab
     # Mappa colori
     color_map = {
         0: (0, 0, 0),   #legante nero
-        #1: (255, 0, 0), #porosità rosso
-        1: (0, 255, 0), #aggregati verdi
+        1: (255, 0, 0), #porosità rosso
+        2: (0, 255, 0), #aggregati verdi
         3: (0, 0, 255), #ignore blu
     }
 
@@ -281,22 +273,26 @@ def complete_output_dir(): #associa ogni predizione alle relative immagini e lab
         label_img = Image.open(label_path).convert("L")  
         label_array = np.array(label_img)
 
+        mapping = np.array([0, 0, 2, 3])  #rimappo la porosità
+        label_array = mapping[label_array]
+
+
         color_label = np.zeros((label_array.shape[0], label_array.shape[1], 3), dtype=np.uint8)
         
         for val, color in color_map.items():
             mask = label_array == val
             color_label[mask, 0] = color[0]
-            #color_label[mask, 1] = color[1]
+            color_label[mask, 1] = color[1]
             color_label[mask, 2] = color[2]
 
         color_label_img = Image.fromarray(color_label)
-        color_label_img.save(os.path.join(predictions_dir, f"{name}_label.tif"))
+        color_label_img.save(os.path.join(predictions_dir, f"{name}_3label.tif"))
         
         # immagini nelle due modalità
         shutil.copy(os.path.join(incrociati_dir, name+".tif"),
-                    os.path.join(predictions_dir, f"{name}_incrociati.tif"))
+                    os.path.join(predictions_dir, f"{name}_1incrociati.tif"))
         shutil.copy(os.path.join(paralleli_dir, name+".tif"),
-                    os.path.join(predictions_dir, f"{name}_paralleli.tif"))
+                    os.path.join(predictions_dir, f"{name}_2paralleli.tif"))
 
     print("output completed!")
 

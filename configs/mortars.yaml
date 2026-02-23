@@ -38,7 +38,7 @@ LOSS:
 OPTIMIZER:
   NAME          : adamw           # optimizer name
   LR            : 0.0001         # initial learning rate used in optimizer
-  WEIGHT_DECAY  : 0.005            # decay rate used in optimizer 
+  WEIGHT_DECAY  : 0.1            # decay rate used in optimizer 
 
 SCHEDULER:
   NAME          : warmuppolylr    # scheduler name
@@ -48,11 +48,11 @@ SCHEDULER:
   
 
 EVAL:
-  MODEL_PATH    : 'output/MMSFormer/MMSF-MORTARS-CONFIG/MMSFormer_MMSFormer-B3_MORTARS_epoch1_49.64.pth'                  # Path to your saved model
+  MODEL_PATH    : 'output/MMSFormer/MMSF-MORTARS-CONFIG/MMSFormer_MMSFormer-B3_MORTARS_epoch100_76.12.pth'                  # Path to your saved model
   IMAGE_SIZE    : [512, 512]                              # evaluation image size in (h, w)                       
   BATCH_SIZE    : 1                                     # batch size
   SAVE_PREDICTIONS : true
-  ERROR_THRESHOLD: 0.15
+  ERROR_THRESHOLD: 0.25
   SAVE_CONFUSION: True
   VIS_SAVE_DIR  : 'data/mortars_results'                      # Where to save visualization
   CONFUSION_DIR : 'data/confusion_matrix'
@@ -60,3 +60,11 @@ EVAL:
     ENABLE      : false                                   # multi-scale and flip evaluation  
     FLIP        : true                                    # use flip in evaluation  
     SCALES      : [0.5, 0.75, 1.0, 1.25, 1.5, 1.75]       # scales used in MSF evaluation                
+
+
+TEST:
+  MODEL_PATH    : 'output/MMSFormer/MMSF-MORTARS-CONFIG/MMSFormer_MMSFormer-B3_MORTARS_epoch100_76.12.pth'                  # Path to your saved model
+  IMAGE_SIZE    : [512, 512]                              # evaluation image size in (h, w)                       
+  VIS_SAVE_DIR  : 'infer_results'                      # Where to save visualization
+  FILE          : '/home/leonardonotari/elabIVA/infer_dataset'
+  OVERLAY       :  true
