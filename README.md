@@ -55,6 +55,12 @@ PRETRAINED: 'checkpoints/pretrained/segformer/mit_b3.pth'   # pesi del backbone
        * Porosità: 3.62%
        * Aggregati: 25.92%
 
+   * Infine, è possibile addestrare il modello focalizzandosi su legante e aggregati senza considerare la porosità impostando nel file di configurazione:
+
+       ```
+       NUM_CLASSES : 2  
+       ```
+     
 3. **Funzionalità di testing**
 
    * Generazione di un file con **mappe delle predizioni** sul dataset di test.
