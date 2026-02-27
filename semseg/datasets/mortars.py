@@ -11,6 +11,8 @@ from semseg.augmentations_mm import get_train_augmentation
 from PIL import Image
 import numpy as np
 import random
+import argparse
+import yaml
 
 
 
@@ -18,14 +20,6 @@ class MORTARS(Dataset):
     """
     Dataset per immagini mortars con 2 canali RGB e label con 3 classi + ignore
     """
-    CLASSES = ["Legante", "Aggregati"]
-    #CLASSES = ["Legante", "Porosità", "Aggregati"]
-
-    PALETTE = torch.tensor([
-        [0, 0, 0],  #legante nero
-        #[255, 0, 0], #porosità rosso
-        [0, 255, 0]  #aggregati verdi
-    ])
 
     def __init__(
         self,
@@ -36,16 +30,32 @@ class MORTARS(Dataset):
         case=None,
         val_ratio=0.20,
         test_ratio=0.20,
-        seed=42
+        seed=42,
+        num_classes = 2
     ):
         super().__init__()
-        assert split in ['train', 'val', 'test']
 
+        if num_classes == 2 :
+            self.CLASSES = ["Legante", "Aggregati"]
+            self.PALETTE = torch.tensor([
+                [0, 0, 0],  #legante nero
+                [0, 255, 0]  #aggregati verdi
+            ])
+        else:
+            self.CLASSES = ["Legante", "Porosità", "Aggregati"]
+            self.PALETTE = torch.tensor([
+                [0, 0, 0],  #legante nero
+                [255, 0, 0], #porosità rosso
+                [0, 255, 0]  #aggregati verdi
+            ])
+
+        assert split in ['train', 'val', 'test']
         self.transform = transform
         self.modals = modals
-        #self.n_classes = len(self.CLASSES)  tolgo la classe porosità
-        self.n_classes = 2
-        self.label_mapping = torch.tensor([0, 0, 1, 3])
+        self.n_classes = len(self.CLASSES)  
+
+        if self.n_classes == 2:
+            self.label_mapping = torch.tensor([0, 0, 1, 3]) # per incorporare la classe porosità alla classe legante
 
         self.ignore_label = 3
 
@@ -119,15 +129,24 @@ class MORTARS(Dataset):
         label = sample.pop('mask')
         label = label.squeeze(0)  
         sample_list = [sample[m] for m in self.modals]
-        label = self.label_mapping[label]
+        if self.n_classes == 2:
+            label = self.label_mapping[label] # rimappa le classi senza porosità
 
 
         return sample_list, label.long(), os.path.basename(img_path)
 
 
 if __name__ == '__main__':
+    
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--cfg', type=str, required=True)
+    args = parser.parse_args()
+    with open(args.cfg) as f:
+        cfg = yaml.load(f, Loader=yaml.SafeLoader)
+    num_classes = cfg['DATASET']['NUM_CLASSES']
+
     traintransform = get_train_augmentation((512, 512))
-    trainset = MORTARS(transform=traintransform, split='train')
+    trainset = MORTARS(num_classes = num_classes, transform=traintransform, split='train')
     trainloader = DataLoader(trainset, batch_size=2, num_workers=2, drop_last=False, pin_memory=False)
 
     for i, (sample, lbl) in enumerate(trainloader):
