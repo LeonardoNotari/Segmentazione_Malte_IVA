@@ -18,8 +18,15 @@ class SemSeg:
         self.device = torch.device(cfg['DEVICE'])
 
         # get dataset classes' colors and labels
-        self.palette = eval(cfg['DATASET']['NAME']).PALETTE
-        self.labels = eval(cfg['DATASET']['NAME']).CLASSES
+        dataset_class = eval(cfg['DATASET']['NAME'])
+        dataset = dataset_class(
+            root=cfg['DATASET']['ROOT'],
+            split='train',  # o un split dummy
+            modals=cfg['DATASET']['MODALS'],
+            num_classes=cfg['DATASET']['NUM_CLASSES']
+        )
+        self.palette = dataset.PALETTE
+        self.labels = dataset.CLASSES
 
         # initialize the model and load weights
         self.model = eval(cfg['MODEL']['NAME'])(cfg['MODEL']['BACKBONE'], len(self.palette), cfg['DATASET']['MODALS'])
@@ -55,7 +62,7 @@ class SemSeg:
         seg_map = seg_map.softmax(dim=1).argmax(dim=1).cpu().to(int)
         seg_image = self.palette[seg_map].squeeze()
         if overlay: 
-            seg_image = (orig_img.permute(1, 2, 0) * 0.4) + (seg_image * 0.6)
+            seg_image = (orig_img.permute(1, 2, 0) * 0.6) + (seg_image * 0.4)
         image = seg_image.to(torch.uint8)
         return Image.fromarray(image.numpy())
 
@@ -109,4 +116,5 @@ if __name__ == '__main__':
             segmap = semseg.predict(file, cfg['TEST']['OVERLAY'])
             filename = os.path.basename(file).replace('.tif', '.png')
             save_path = save_dir / filename
-            segmap.save(save_path)
+            segmap.save(save_path) 
+            

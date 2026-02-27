@@ -39,7 +39,6 @@ def pad_image(img, target_size):
 
 
 
-
 @torch.no_grad()
 def sliding_predict(model, image, num_classes, flip=True):
     image_size = image[0].shape
@@ -82,9 +81,11 @@ def sliding_predict(model, image, num_classes, flip=True):
 def save_confusion_matrix(): #crea immagine confusion matrix
     cm_file = Path(cfg['EVAL']['CONFUSION_DIR'] + "/confusion_matrix.npy")
     cm = np.load(cm_file)
-
-    #class_names = ["Legante", "Porosità", "Aggregati"] 
-    class_names = ["Legante", "Aggregati"] 
+    
+    if cfg['DATASET']['NUM_CLASSES'] == 3:
+        class_names = ["Legante", "Porosità", "Aggregati"] # se si considera la porosità
+    else:
+        class_names = ["Legante", "Aggregati"] 
 
     save_path= cfg['EVAL']['CONFUSION_DIR'] + "/confusion_matrix.png"
 
@@ -150,7 +151,16 @@ def evaluate(model, dataloader, device, loss_fn=None, cfg=None):
             wrong = (pred_labels != labels) & mask_valid
             error_rate = wrong.sum().float() / mask_valid.sum().float()
 
-            if error_rate > cfg['EVAL']['ERROR_THRESHOLD']:
+            # Per calcolare la differenza assoluta di pixel classificati come aggregati tra predizione e label
+            num_ones_pred = ((pred_labels == 1) & mask_valid).sum().item()
+            num_ones_label = ((labels == 1) & mask_valid).sum().item()
+            diff = num_ones_label - num_ones_pred
+            # normalizzata
+            if diff<0:
+                diff = (-1)*diff
+            diff = diff/(512*512)
+
+            if error_rate > cfg['EVAL']['ERROR_THRESHOLD'] and diff < 1:
 
                 vis_dir = Path(cfg['EVAL']['VIS_SAVE_DIR'])
                 vis_dir.mkdir(parents=True, exist_ok=True)
@@ -158,7 +168,7 @@ def evaluate(model, dataloader, device, loss_fn=None, cfg=None):
                 pred_mask = pred_labels[0]
 
                 name, _ = os.path.splitext(fname[0])
-                save_path = vis_dir / f"{name}_4prediction.png"
+                save_path = vis_dir / f"{name}_4prediction_{error_rate:.3f}_{diff:.3f}.png"
 
                 save_pred_map(pred_mask, save_path, dataloader.dataset.PALETTE)
 
@@ -252,10 +262,14 @@ def complete_output_dir(): #associa ogni predizione alle relative immagini e lab
     est = (".png", ".tif")
 
     # FUNZIONA CON I NOMI ASSEGNATI DAL MODELLO 
-    predictions = {f[:-16] for f in os.listdir(predictions_dir) if f.lower().endswith(est)} 
-    labels = {f[:-4] for f in os.listdir(labels_dir) if f.lower().endswith(est)}
-    incrociati = {f[:-4] for f in os.listdir(incrociati_dir) if f.lower().endswith(est)}
-    paralleli = {f[:-4] for f in os.listdir(paralleli_dir) if f.lower().endswith(est)}
+    #predictions = {f[:-16] for f in os.listdir(predictions_dir) if f.lower().endswith(est)} 
+    #labels = {f[:-4] for f in os.listdir(labels_dir) if f.lower().endswith(est)}
+    #incrociati = {f[:-4] for f in os.listdir(incrociati_dir) if f.lower().endswith(est)}
+    #paralleli = {f[:-4] for f in os.listdir(paralleli_dir) if f.lower().endswith(est)}
+    predictions = {f.split("_4prediction_")[0] for f in os.listdir(predictions_dir) if f.lower().endswith(est)} 
+    labels = {f.split(".")[0] for f in os.listdir(labels_dir) if f.lower().endswith(est)}
+    incrociati = {f.split(".")[0] for f in os.listdir(incrociati_dir) if f.lower().endswith(est)}
+    paralleli = {f.split(".")[0] for f in os.listdir(paralleli_dir) if f.lower().endswith(est)}
     common_file = predictions & labels & incrociati & paralleli
     print(f"Found {len(common_file)} complete set.")
 
@@ -272,9 +286,9 @@ def complete_output_dir(): #associa ogni predizione alle relative immagini e lab
         label_path = os.path.join(labels_dir, name+".tif")
         label_img = Image.open(label_path).convert("L")  
         label_array = np.array(label_img)
-
-        mapping = np.array([0, 0, 2, 3])  #rimappo la porosità
-        label_array = mapping[label_array]
+        if cfg['DATASET']['NUM_CLASSES'] == 2:
+            mapping = np.array([0, 0, 2, 3])  #rimappo la porosità
+            label_array = mapping[label_array]
 
 
         color_label = np.zeros((label_array.shape[0], label_array.shape[1], 3), dtype=np.uint8)
@@ -317,7 +331,7 @@ def main(cfg):
     for case in cases:
         #dataset = eval(cfg['DATASET']['NAME'])(cfg['DATASET']['ROOT'], 'val', transform, cfg['DATASET']['MODALS'], case)
    
-        dataset = eval(cfg['DATASET']['NAME'])(cfg['DATASET']['ROOT'], 'test', transform, cfg['DATASET']['MODALS'], case)
+        dataset = eval(cfg['DATASET']['NAME'])(cfg['DATASET']['ROOT'], 'test', transform, cfg['DATASET']['MODALS'], case, num_classes=cfg['DATASET']['NUM_CLASSES'])
 
         model = eval(cfg['MODEL']['NAME'])(cfg['MODEL']['BACKBONE'], dataset.n_classes, cfg['DATASET']['MODALS'])
         msg = model.load_state_dict(torch.load(str(model_path), map_location='cpu'))
