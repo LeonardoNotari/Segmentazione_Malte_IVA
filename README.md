@@ -131,6 +131,13 @@ python -m tools.infer_mm --cfg configs/mortars.yaml
 MODEL_PATH: 'output/MMSFormer/MMSF-MORTARS-CONFIG/MMSFormer_MMSFormer-B3_MORTARS_epochXX_XX.XX.pth'
 ```
 
+### Modelli addestrati
+
+```
+Sono presenti dei modelli addestrati per la segmentazione delle malte al link: https://drive.google.com/drive/folders/1RFcC_c-t8dWocq6t473JKHmrPFLEwPcz?usp=sharing .
+C'è un modello addestrato utilizzando tre classi ( porosità, legante, aggregati ) e due modelli addestrati sul dataset al quale è stata tolta la classe porosità.
+```
+
 ---
 
 ## Esempio di configurazione (`mortars.yaml`)
@@ -187,7 +194,7 @@ SCHEDULER:
   
 
 EVAL:
-  #MODEL_PATH    : 'output/MMSFormer/MMSF-MORTARS-CONFIG/MMSFormer_MMSFormer-B3_MORTARS_epoch100_77.81.pth'         # Path to your saved model
+  MODEL_PATH    : 'output/MMSFormer/MMSF-MORTARS-CONFIG/MMSFormer_MMSFormer-B3_MORTARS_epoch100_77.81.pth'         # Path to your saved model
   IMAGE_SIZE    : [512, 512]                                         # evaluation image size in (h, w)                       
   BATCH_SIZE    : 1                                                  # batch size
   SAVE_PREDICTIONS : true
@@ -202,7 +209,7 @@ EVAL:
 
 
 TEST:
-  #MODEL_PATH    : 'output/MMSFormer/MMSF-MORTARS-CONFIG/MMSFormer_MMSFormer-B3_MORTARS_epoch100_77.81.pth'         # Path to your saved model
+  MODEL_PATH    : 'output/MMSFormer/MMSF-MORTARS-CONFIG/MMSFormer_MMSFormer-B3_MORTARS_epoch100_77.81.pth'         # Path to your saved model
   IMAGE_SIZE    : [512, 512]                                               
   VIS_SAVE_DIR  : 'infer_results'                                    # Where to save visualization
   FILE          : '/home/leonardonotari/elabIVA/infer_dataset'
