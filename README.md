@@ -111,7 +111,21 @@ Per testare il modello su un dataset di test:
 python -m tools.val_mm --cfg configs/mortars.yaml
 ```
 
-* Assicurarsi di aver aggiornato nel file `mortars.yaml` il percorso del modello salvato:
+* Assicurarsi di aver aggiornato nel file `mortars.yaml` il percorso del modello salvato nella sezione `EVAL`:
+
+```
+MODEL_PATH: 'output/MMSFormer/MMSF-MORTARS-CONFIG/MMSFormer_MMSFormer-B3_MORTARS_epochXX_XX.XX.pth'
+```
+
+### Inference
+
+Per fare inferenza con il modello su nuovi dati:
+
+```
+python -m tools.infer_mm --cfg configs/mortars.yaml
+```
+
+* Assicurarsi di aver aggiornato nel file `mortars.yaml` il percorso del modello salvato, nella sezione `TEST` :
 
 ```
 MODEL_PATH: 'output/MMSFormer/MMSF-MORTARS-CONFIG/MMSFormer_MMSFormer-B3_MORTARS_epochXX_XX.XX.pth'
@@ -122,63 +136,78 @@ MODEL_PATH: 'output/MMSFormer/MMSF-MORTARS-CONFIG/MMSFormer_MMSFormer-B3_MORTARS
 ## Esempio di configurazione (`mortars.yaml`)
 
 ```yaml
-DEVICE          : cuda
-SAVE_DIR        : 'output/MMSFormer'
+DEVICE          : cuda                        
+SAVE_DIR        : 'output/MMSFormer'          
+#GPUs            : 2
+#GPU_IDs         : [0, 1]
 GPUs            : 1
 GPU_IDs         : [0]
 USE_WANDB       : false
-WANDB_NAME      : 'MMSF-MORTARS-CONFIG'
+WANDB_NAME      : 'MMSF-MORTARS-CONFIG'           
 
 MODEL:
-  NAME          : MMSFormer
-  BACKBONE      : MMSFormer-B3
-  PRETRAINED    : 'checkpoints/pretrained/segformer/mit_b3.pth'
-  RESUME        : ''
+  NAME          : MMSFormer                                         # name of the model you are using
+  BACKBONE      : MMSFormer-B3                                      # model variant
+  PRETRAINED    : 'checkpoints/pretrained/segformer/mit_b3.pth'     # backbone model's weight 
+  RESUME        : ''                                                # checkpoint file
 
 DATASET:
-  NAME          : MORTARS
-  ROOT          : '/mortars_dataset'
+  NAME          : MORTARS                                           # dataset name to be trained with (camvid, cityscapes, ade20k)
+  ROOT          : '/mortars_dataset'        # dataset root path
   IGNORE_LABEL  : 3
+  # MODALS        : ['img']
   MODALS        : ['paralleli', 'incrociati'] 
+  NUM_CLASSES   : 3                                              
 
 TRAIN:
-  IMAGE_SIZE    : [512, 512]      
-  BATCH_SIZE    : 4
-  EPOCHS        : 1
-  EVAL_START    : 0
-  EVAL_INTERVAL : 1
-  AMP           : true
-  DDP           : false
-  WEIGHTED_RANDOM_SAMPLER : true
+  IMAGE_SIZE    : [512, 512]                                         # training image size in (h, w) 
+  BATCH_SIZE    : 4                                                  # batch size used to train
+  EPOCHS        : 1                                                  # number of epochs to train
+  EVAL_START    : 0                                                  # evaluation interval during training
+  EVAL_INTERVAL : 1                                                  # evaluation interval during training
+  AMP           : true                                               # use AMP in training
+  DDP           : false                                              # use DDP training
+  WEIGHTED_RANDOM_SAMPLER : falses                      
 
 LOSS:
-  NAME          : OhemCrossEntropy
-  CLS_WEIGHTS   : false
+  NAME          : OhemCrossEntropy                                   # loss function name
+  CLS_WEIGHTS   : false                                              # use class weights in loss calculation
   CLASS_WEIGHTS : [1.0, 8.0, 2.5] 
 
 OPTIMIZER:
-  NAME          : adamw
-  LR            : 0.0001
-  WEIGHT_DECAY  : 0.01
+  NAME          : adamw                                              # optimizer name
+  LR            : 0.0001                                             # initial learning rate used in optimizer
+  WEIGHT_DECAY  : 0.1                                                # decay rate used in optimizer 
 
 SCHEDULER:
-  NAME          : warmuppolylr
-  POWER         : 0.9
-  WARMUP        : 10
-  WARMUP_RATIO  : 0.1
+  NAME          : warmuppolylr                                       # scheduler name
+  POWER         : 0.9                                                # scheduler power
+  WARMUP        : 10                                                 # warmup epochs used in scheduler
+  WARMUP_RATIO  : 0.1                                                # warmup ratio
+  
 
 EVAL:
-  MODEL_PATH    : 'output/MMSFormer/MMSF-MORTARS-CONFIG/MMSFormer_MMSFormer-B3_MORTARS_epoch76_65.24.pth'
-  IMAGE_SIZE    : [512, 512]
-  BATCH_SIZE    : 1
+  #MODEL_PATH    : 'output/MMSFormer/MMSF-MORTARS-CONFIG/MMSFormer_MMSFormer-B3_MORTARS_epoch100_77.81.pth'         # Path to your saved model
+  IMAGE_SIZE    : [512, 512]                                         # evaluation image size in (h, w)                       
+  BATCH_SIZE    : 1                                                  # batch size
   SAVE_PREDICTIONS : true
-  SAVE_CONFUSION: true
-  VIS_SAVE_DIR  : 'data/mortars_results'
+  ERROR_THRESHOLD: 0.25
+  SAVE_CONFUSION: True
+  VIS_SAVE_DIR  : 'data/mortars_results'                             # Where to save visualization
   CONFUSION_DIR : 'data/confusion_matrix'
   MSF:  
-    ENABLE      : false
-    FLIP        : true
-    SCALES      : [0.5, 0.75, 1.0, 1.25, 1.5, 1.75]
+    ENABLE      : false                                              # multi-scale and flip evaluation  
+    FLIP        : true                                               # use flip in evaluation  
+    SCALES      : [0.5, 0.75, 1.0, 1.25, 1.5, 1.75]                  # scales used in MSF evaluation                
+
+
+TEST:
+  #MODEL_PATH    : 'output/MMSFormer/MMSF-MORTARS-CONFIG/MMSFormer_MMSFormer-B3_MORTARS_epoch100_77.81.pth'         # Path to your saved model
+  IMAGE_SIZE    : [512, 512]                                               
+  VIS_SAVE_DIR  : 'infer_results'                                    # Where to save visualization
+  FILE          : '/home/leonardonotari/elabIVA/infer_dataset'
+  OVERLAY       :  true
+
 ```
 
 
