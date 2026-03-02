@@ -133,10 +133,8 @@ MODEL_PATH: 'output/MMSFormer/MMSF-MORTARS-CONFIG/MMSFormer_MMSFormer-B3_MORTARS
 
 ### Modelli addestrati
 
-```
 Sono presenti dei modelli addestrati per la segmentazione delle malte al link: https://drive.google.com/drive/folders/1RFcC_c-t8dWocq6t473JKHmrPFLEwPcz?usp=sharing .
 C'è un modello addestrato utilizzando tre classi ( porosità, legante, aggregati ) e due modelli addestrati sul dataset al quale è stata tolta la classe porosità.
-```
 
 ---
 
