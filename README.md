@@ -172,7 +172,7 @@ TRAIN:
   EVAL_INTERVAL : 1                                                  # evaluation interval during training
   AMP           : true                                               # use AMP in training
   DDP           : false                                              # use DDP training
-  WEIGHTED_RANDOM_SAMPLER : falses                      
+  WEIGHTED_RANDOM_SAMPLER : false                      
 
 LOSS:
   NAME          : OhemCrossEntropy                                   # loss function name
